@@ -44,7 +44,7 @@ rôles, tâches, tableau de bord par statut, notifications par e-mail et histori
 Prérequis : Docker avec Docker Compose (Docker Desktop convient). Rien d'autre à installer.
 
 ```bash
-git clone <adresse-du-dépôt> pmt
+git clone https://github.com/patrice-rai/pmt-project-management-tool.git pmt
 cd pmt
 docker compose up --build -d
 ```
