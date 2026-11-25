@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# PMT : base PostgreSQL, faux serveur de messagerie, back et front.
+#
+#   Construire et lancer depuis les sources :   docker compose up --build -d
+#   Lancer les images publiées sur Docker Hub : docker compose pull backend frontend
+#                                               docker compose up -d --no-build
+#
+# Variables (fichier .env ou environnement, voir .env.example) :
+#   DOCKERHUB_USERNAME  compte Docker Hub qui porte les images
+#   IMAGE_TAG           version des images (latest par défaut)
+#   POSTGRES_PASSWORD   mot de passe de la base (pmt par défaut, à changer hors démonstration)
+# ---------------------------------------------------------------------------
+services:
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pmt
+      POSTGRES_USER: pmt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pmt}
+    volumes:
+      # Les données survivent à un arrêt des conteneurs
+      - pmt-db-data:/var/lib/postgresql/data
+      # Structure et données de test, jouées au tout premier démarrage (volume vide)
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pmt -d pmt"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Faux serveur SMTP : les e-mails d'assignation se lisent sur http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  backend:
+    image: ${DOCKERHUB_USERNAME:-local}/pmt-backend:${IMAGE_TAG:-latest}
+    build: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/pmt
+      SPRING_DATASOURCE_USERNAME: pmt
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pmt}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    depends_on:
+      # Le back vérifie le schéma au démarrage : la base doit être prête
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME:-local}/pmt-frontend:${IMAGE_TAG:-latest}
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
+volumes:
+  pmt-db-data:
