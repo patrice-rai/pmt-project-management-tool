@@ -17,8 +17,6 @@ contenu de ce dépôt :
 - les deux Dockerfile, le fichier Docker Compose et la chaîne GitHub Actions ;
 - le `README.md` et la documentation de l'API.
 
-Les commits correspondants portent la mention `Co-Authored-By: Claude`.
-
 ## Ce que l'IA a vérifié elle-même
 
 - exécution des tests du back (`mvnw verify`) et du front (`npm run test:coverage`), avec contrôle des
