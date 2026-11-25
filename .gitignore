@@ -1,0 +1,19 @@
+# Back (Maven)
+backend/target/
+
+# Front (Angular)
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.angular/
+
+# Environnement local
+.env
+*.log
+
+# IDE et système
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
