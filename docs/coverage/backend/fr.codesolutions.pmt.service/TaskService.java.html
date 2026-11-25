@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.service</a> &gt; <span class="el_source">TaskService.java</span></div><h1>TaskService.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.service;
+
+import fr.codesolutions.pmt.dto.TaskDtos.HistoryResponse;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskCreateRequest;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskResponse;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskUpdateRequest;
+import fr.codesolutions.pmt.exception.ApiException;
+import fr.codesolutions.pmt.model.ProjectMember;
+import fr.codesolutions.pmt.model.Task;
+import fr.codesolutions.pmt.model.TaskStatus;
+import fr.codesolutions.pmt.model.User;
+import fr.codesolutions.pmt.repository.ProjectMemberRepository;
+import fr.codesolutions.pmt.repository.TaskRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Gestion des tâches : création, assignation, mise à jour, consultation et historique.
+ */
+@Service
+@Transactional(readOnly = true)
+public class TaskService {
+
+    private final TaskRepository taskRepository;
+    private final ProjectMemberRepository memberRepository;
+    private final ProjectAccessService accessService;
+    private final TaskHistoryService historyService;
+    private final NotificationService notificationService;
+
+    public TaskService(TaskRepository taskRepository, ProjectMemberRepository memberRepository,
+                       ProjectAccessService accessService, TaskHistoryService historyService,
+<span class="fc" id="L35">                       NotificationService notificationService) {</span>
+<span class="fc" id="L36">        this.taskRepository = taskRepository;</span>
+<span class="fc" id="L37">        this.memberRepository = memberRepository;</span>
+<span class="fc" id="L38">        this.accessService = accessService;</span>
+<span class="fc" id="L39">        this.historyService = historyService;</span>
+<span class="fc" id="L40">        this.notificationService = notificationService;</span>
+<span class="fc" id="L41">    }</span>
+
+    /**
+     * Crée une tâche dans un projet (administrateur ou membre).
+     * Si un assigné est fourni, il est notifié par e-mail.
+     */
+    @Transactional
+    public TaskResponse create(Long projectId, Long userId, TaskCreateRequest request) {
+<span class="fc" id="L49">        ProjectMember author = accessService.requireTaskEditor(projectId, userId);</span>
+<span class="fc" id="L50">        Task task = new Task(author.getProject(), request.name().trim(), blankToNull(request.description()),</span>
+<span class="fc" id="L51">                request.dueDate(), request.priority(), author.getUser());</span>
+<span class="fc" id="L52">        User assignee = resolveAssignee(projectId, request.assigneeId());</span>
+<span class="fc" id="L53">        task.setAssignee(assignee);</span>
+<span class="fc" id="L54">        task = taskRepository.save(task);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (assignee != null) {</span>
+<span class="fc" id="L56">            notificationService.notifyTaskAssigned(task, assignee, author.getUser());</span>
+        }
+<span class="fc" id="L58">        return TaskResponse.from(task);</span>
+    }
+
+    /**
+     * Tâches d'un projet pour le tableau de bord, éventuellement filtrées par statut.
+     *
+     * @param status statut voulu, ou null pour toutes les tâches
+     */
+    public List&lt;TaskResponse&gt; list(Long projectId, Long userId, TaskStatus status) {
+<span class="fc" id="L67">        accessService.requireMember(projectId, userId);</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        List&lt;Task&gt; tasks = status == null</span>
+<span class="fc" id="L69">                ? taskRepository.findByProjectIdOrderByDueDateAsc(projectId)</span>
+<span class="fc" id="L70">                : taskRepository.findByProjectIdAndStatusOrderByDueDateAsc(projectId, status);</span>
+<span class="fc" id="L71">        return tasks.stream().map(TaskResponse::from).toList();</span>
+    }
+
+    /** Détail d'une tâche, visible par tous les membres du projet. */
+    public TaskResponse get(Long taskId, Long userId) {
+<span class="fc" id="L76">        Task task = requireTask(taskId);</span>
+<span class="fc" id="L77">        accessService.requireMember(task.getProject().getId(), userId);</span>
+<span class="fc" id="L78">        return TaskResponse.from(task);</span>
+    }
+
+    /**
+     * Met à jour une tâche (administrateur ou membre). Chaque champ réellement modifié
+     * produit une ligne d'historique ; un nouvel assigné est notifié par e-mail.
+     */
+    @Transactional
+    public TaskResponse update(Long taskId, Long userId, TaskUpdateRequest request) {
+<span class="fc" id="L87">        Task task = requireTask(taskId);</span>
+<span class="fc" id="L88">        Long projectId = task.getProject().getId();</span>
+<span class="fc" id="L89">        User author = accessService.requireTaskEditor(projectId, userId).getUser();</span>
+
+<span class="fc" id="L91">        String name = request.name().trim();</span>
+<span class="fc" id="L92">        String description = blankToNull(request.description());</span>
+<span class="fc" id="L93">        boolean changed = historyService.recordChange(task, author, &quot;name&quot;, task.getName(), name);</span>
+<span class="fc" id="L94">        changed |= historyService.recordChange(task, author, &quot;description&quot;, task.getDescription(), description);</span>
+<span class="fc" id="L95">        changed |= historyService.recordChange(task, author, &quot;dueDate&quot;, task.getDueDate(), request.dueDate());</span>
+<span class="fc" id="L96">        changed |= historyService.recordChange(task, author, &quot;endDate&quot;, task.getEndDate(), request.endDate());</span>
+<span class="fc" id="L97">        changed |= historyService.recordChange(task, author, &quot;priority&quot;, task.getPriority(), request.priority());</span>
+<span class="fc" id="L98">        changed |= historyService.recordChange(task, author, &quot;status&quot;, task.getStatus(), request.status());</span>
+
+<span class="fc" id="L100">        task.setName(name);</span>
+<span class="fc" id="L101">        task.setDescription(description);</span>
+<span class="fc" id="L102">        task.setDueDate(request.dueDate());</span>
+<span class="fc" id="L103">        task.setEndDate(request.endDate());</span>
+<span class="fc" id="L104">        task.setPriority(request.priority());</span>
+<span class="fc" id="L105">        task.setStatus(request.status());</span>
+<span class="fc" id="L106">        changed |= changeAssignee(task, author, request.assigneeId());</span>
+
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (changed) {</span>
+<span class="fc" id="L109">            task.setUpdatedAt(LocalDateTime.now());</span>
+        }
+<span class="fc" id="L111">        return TaskResponse.from(task);</span>
+    }
+
+    /**
+     * Assigne une tâche à un membre du projet, ou la désassigne (administrateur ou membre).
+     *
+     * @param assigneeId identifiant du membre, ou null pour retirer l'assignation
+     */
+    @Transactional
+    public TaskResponse assign(Long taskId, Long userId, Long assigneeId) {
+<span class="fc" id="L121">        Task task = requireTask(taskId);</span>
+<span class="fc" id="L122">        User author = accessService.requireTaskEditor(task.getProject().getId(), userId).getUser();</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (changeAssignee(task, author, assigneeId)) {</span>
+<span class="fc" id="L124">            task.setUpdatedAt(LocalDateTime.now());</span>
+        }
+<span class="fc" id="L126">        return TaskResponse.from(task);</span>
+    }
+
+    /** Historique des modifications d'une tâche, visible par tous les membres du projet. */
+    public List&lt;HistoryResponse&gt; history(Long taskId, Long userId) {
+<span class="fc" id="L131">        Task task = requireTask(taskId);</span>
+<span class="fc" id="L132">        accessService.requireMember(task.getProject().getId(), userId);</span>
+<span class="fc" id="L133">        return historyService.historyOf(taskId).stream().map(HistoryResponse::from).toList();</span>
+    }
+
+    /**
+     * Applique un changement d'assigné : historique puis notification du nouvel assigné.
+     *
+     * @return true si l'assigné a changé
+     */
+    private boolean changeAssignee(Task task, User author, Long assigneeId) {
+<span class="fc" id="L142">        User newAssignee = resolveAssignee(task.getProject().getId(), assigneeId);</span>
+<span class="fc" id="L143">        boolean changed = historyService.recordChange(task, author, &quot;assignee&quot;,</span>
+<span class="fc" id="L144">                usernameOf(task.getAssignee()), usernameOf(newAssignee));</span>
+<span class="fc" id="L145">        task.setAssignee(newAssignee);</span>
+<span class="fc bfc" id="L146" title="All 4 branches covered.">        if (changed &amp;&amp; newAssignee != null) {</span>
+<span class="fc" id="L147">            notificationService.notifyTaskAssigned(task, newAssignee, author);</span>
+        }
+<span class="fc" id="L149">        return changed;</span>
+    }
+
+    /**
+     * Une tâche ne peut être assignée qu'à un membre du projet, quel que soit son rôle.
+     *
+     * @throws ApiException 400 si l'utilisateur visé n'est pas membre du projet
+     */
+    private User resolveAssignee(Long projectId, Long assigneeId) {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (assigneeId == null) {</span>
+<span class="fc" id="L159">            return null;</span>
+        }
+<span class="fc" id="L161">        return memberRepository.findByProjectIdAndUserId(projectId, assigneeId)</span>
+<span class="fc" id="L162">                .map(ProjectMember::getUser)</span>
+<span class="fc" id="L163">                .orElseThrow(() -&gt; ApiException.badRequest(&quot;La tâche ne peut être assignée qu'à un membre du projet&quot;));</span>
+    }
+
+    private Task requireTask(Long taskId) {
+<span class="fc" id="L167">        return taskRepository.findById(taskId)</span>
+<span class="fc" id="L168">                .orElseThrow(() -&gt; ApiException.notFound(&quot;Tâche introuvable&quot;));</span>
+    }
+
+    private static String usernameOf(User user) {
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        return user == null ? null : user.getUsername();</span>
+    }
+
+    private static String blankToNull(String text) {
+<span class="fc bfc" id="L176" title="All 4 branches covered.">        return text == null || text.isBlank() ? null : text.trim();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

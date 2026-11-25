@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.controller</a> &gt; <span class="el_source">TaskController.java</span></div><h1>TaskController.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.controller;
+
+import fr.codesolutions.pmt.dto.ErrorResponse;
+import fr.codesolutions.pmt.dto.TaskDtos.AssignRequest;
+import fr.codesolutions.pmt.dto.TaskDtos.HistoryResponse;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskResponse;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskUpdateRequest;
+import fr.codesolutions.pmt.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+import static fr.codesolutions.pmt.controller.ProjectController.USER_HEADER;
+import static fr.codesolutions.pmt.controller.ProjectController.USER_HEADER_DOC;
+
+/**
+ * Consultation, mise à jour, assignation et historique d'une tâche (user stories 7 à 9, 11 et 12).
+ */
+@RestController
+@RequestMapping(&quot;/api/tasks&quot;)
+@Tag(name = &quot;Tâches&quot;, description = &quot;Détail, mise à jour, assignation et historique&quot;)
+@ApiResponse(responseCode = &quot;401&quot;, description = &quot;En-tête X-User-Id absent ou utilisateur inconnu&quot;,
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+@ApiResponse(responseCode = &quot;404&quot;, description = &quot;Tâche introuvable&quot;,
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+public class TaskController {
+
+    private final TaskService taskService;
+
+<span class="fc" id="L44">    public TaskController(TaskService taskService) {</span>
+<span class="fc" id="L45">        this.taskService = taskService;</span>
+<span class="fc" id="L46">    }</span>
+
+    @GetMapping(&quot;/{taskId}&quot;)
+    @Operation(summary = &quot;Consulter une tâche&quot;,
+            description = &quot;Renvoie toutes les informations d'une tâche. Accessible à tous les rôles du projet.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Tâche trouvée&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur n'est pas membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public TaskResponse get(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant de la tâche&quot;, example = &quot;2&quot;) @PathVariable Long taskId) {
+<span class="fc" id="L57">        return taskService.get(taskId, userId);</span>
+    }
+
+    @PutMapping(&quot;/{taskId}&quot;)
+    @Operation(summary = &quot;Mettre à jour une tâche&quot;,
+            description = &quot;Remplace les informations de la tâche (dont la date de fin, le statut et l'assigné). &quot;
+                    + &quot;Réservé aux administrateurs et aux membres. Chaque champ modifié est ajouté à l'historique.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Tâche mise à jour&quot;)
+    @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides ou assigné non membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Rôle insuffisant (observateur) ou non membre&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public TaskResponse update(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant de la tâche&quot;, example = &quot;2&quot;) @PathVariable Long taskId,
+            @Valid @RequestBody TaskUpdateRequest request) {
+<span class="fc" id="L73">        return taskService.update(taskId, userId, request);</span>
+    }
+
+    @PatchMapping(&quot;/{taskId}/assignee&quot;)
+    @Operation(summary = &quot;Assigner une tâche&quot;,
+            description = &quot;Assigne la tâche à un membre du projet, qui reçoit un e-mail de notification. &quot;
+                    + &quot;Un assigneeId null retire l'assignation. Réservé aux administrateurs et aux membres.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Tâche assignée&quot;)
+    @ApiResponse(responseCode = &quot;400&quot;, description = &quot;L'utilisateur visé n'est pas membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Rôle insuffisant (observateur) ou non membre&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public TaskResponse assign(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant de la tâche&quot;, example = &quot;3&quot;) @PathVariable Long taskId,
+            @RequestBody AssignRequest request) {
+<span class="fc" id="L89">        return taskService.assign(taskId, userId, request.assigneeId());</span>
+    }
+
+    @GetMapping(&quot;/{taskId}/history&quot;)
+    @Operation(summary = &quot;Historique d'une tâche&quot;,
+            description = &quot;Renvoie les modifications de la tâche, de la plus récente à la plus ancienne. &quot;
+                    + &quot;Accessible à tous les rôles du projet.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Historique de la tâche&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur n'est pas membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public List&lt;HistoryResponse&gt; history(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant de la tâche&quot;, example = &quot;1&quot;) @PathVariable Long taskId) {
+<span class="fc" id="L102">        return taskService.history(taskId, userId);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

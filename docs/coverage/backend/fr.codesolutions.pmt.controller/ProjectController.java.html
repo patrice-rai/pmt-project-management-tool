@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.controller</a> &gt; <span class="el_source">ProjectController.java</span></div><h1>ProjectController.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.controller;
+
+import fr.codesolutions.pmt.dto.ErrorResponse;
+import fr.codesolutions.pmt.dto.ProjectDtos.MemberRequest;
+import fr.codesolutions.pmt.dto.ProjectDtos.MemberResponse;
+import fr.codesolutions.pmt.dto.ProjectDtos.ProjectRequest;
+import fr.codesolutions.pmt.dto.ProjectDtos.ProjectResponse;
+import fr.codesolutions.pmt.dto.ProjectDtos.RoleRequest;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskCreateRequest;
+import fr.codesolutions.pmt.dto.TaskDtos.TaskResponse;
+import fr.codesolutions.pmt.model.TaskStatus;
+import fr.codesolutions.pmt.service.ProjectService;
+import fr.codesolutions.pmt.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+/**
+ * Projets, membres, rôles et tâches d'un projet (user stories 3 à 6 et 10).
+ */
+@RestController
+@RequestMapping(&quot;/api/projects&quot;)
+@Tag(name = &quot;Projets&quot;, description = &quot;Projets, membres, rôles et tableau de bord&quot;)
+@ApiResponse(responseCode = &quot;401&quot;, description = &quot;En-tête X-User-Id absent ou utilisateur inconnu&quot;,
+        content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+public class ProjectController {
+
+    /** En-tête qui identifie l'utilisateur connecté. */
+    public static final String USER_HEADER = &quot;X-User-Id&quot;;
+    static final String USER_HEADER_DOC = &quot;Identifiant de l'utilisateur connecté&quot;;
+
+    private final ProjectService projectService;
+    private final TaskService taskService;
+
+<span class="fc" id="L52">    public ProjectController(ProjectService projectService, TaskService taskService) {</span>
+<span class="fc" id="L53">        this.projectService = projectService;</span>
+<span class="fc" id="L54">        this.taskService = taskService;</span>
+<span class="fc" id="L55">    }</span>
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = &quot;Créer un projet&quot;,
+            description = &quot;Crée un projet ; l'utilisateur connecté en devient l'administrateur.&quot;)
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Projet créé&quot;)
+    @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ProjectResponse create(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Valid @RequestBody ProjectRequest request) {
+<span class="fc" id="L67">        return projectService.create(userId, request);</span>
+    }
+
+    @GetMapping
+    @Operation(summary = &quot;Lister mes projets&quot;,
+            description = &quot;Renvoie les projets dont l'utilisateur connecté est membre, avec son rôle sur chacun.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Liste des projets&quot;)
+    public List&lt;ProjectResponse&gt; list(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId) {
+<span class="fc" id="L76">        return projectService.listForUser(userId);</span>
+    }
+
+    @GetMapping(&quot;/{projectId}&quot;)
+    @Operation(summary = &quot;Consulter un projet&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Projet trouvé&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur n'est pas membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Projet introuvable&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ProjectResponse get(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant du projet&quot;, example = &quot;1&quot;) @PathVariable Long projectId) {
+<span class="fc" id="L89">        return projectService.get(projectId, userId);</span>
+    }
+
+    @GetMapping(&quot;/{projectId}/members&quot;)
+    @Operation(summary = &quot;Lister les membres d'un projet&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Liste des membres et de leur rôle&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur n'est pas membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public List&lt;MemberResponse&gt; listMembers(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant du projet&quot;, example = &quot;1&quot;) @PathVariable Long projectId) {
+<span class="fc" id="L100">        return projectService.listMembers(projectId, userId);</span>
+    }
+
+    @PostMapping(&quot;/{projectId}/members&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = &quot;Inviter un membre&quot;,
+            description = &quot;Ajoute au projet l'utilisateur qui possède cette adresse e-mail, avec le rôle indiqué. &quot;
+                    + &quot;Réservé aux administrateurs du projet.&quot;)
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Membre ajouté&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur connecté n'est pas administrateur du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Projet introuvable ou aucun compte avec cette adresse&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Utilisateur déjà membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public MemberResponse addMember(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant du projet&quot;, example = &quot;1&quot;) @PathVariable Long projectId,
+            @Valid @RequestBody MemberRequest request) {
+<span class="fc" id="L119">        return projectService.addMember(projectId, userId, request);</span>
+    }
+
+    @PatchMapping(&quot;/{projectId}/members/{memberId}&quot;)
+    @Operation(summary = &quot;Attribuer un rôle à un membre&quot;,
+            description = &quot;Change le rôle d'un membre (ADMIN, MEMBER ou OBSERVER). Réservé aux administrateurs. &quot;
+                    + &quot;Le dernier administrateur d'un projet ne peut pas être rétrogradé.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Rôle modifié&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur connecté n'est pas administrateur du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Projet introuvable ou utilisateur non membre&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Le projet n'aurait plus d'administrateur&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public MemberResponse changeRole(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant du projet&quot;, example = &quot;1&quot;) @PathVariable Long projectId,
+            @Parameter(description = &quot;Identifiant de l'utilisateur dont on change le rôle&quot;, example = &quot;2&quot;)
+            @PathVariable Long memberId,
+            @Valid @RequestBody RoleRequest request) {
+<span class="fc" id="L139">        return projectService.changeRole(projectId, userId, memberId, request.role());</span>
+    }
+
+    @GetMapping(&quot;/{projectId}/tasks&quot;)
+    @Operation(summary = &quot;Tableau de bord : tâches d'un projet&quot;,
+            description = &quot;Renvoie les tâches du projet triées par échéance. Le paramètre status permet de &quot;
+                    + &quot;n'obtenir qu'une colonne du tableau de bord. Accessible à tous les rôles.&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Liste des tâches&quot;)
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;L'utilisateur n'est pas membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public List&lt;TaskResponse&gt; listTasks(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant du projet&quot;, example = &quot;1&quot;) @PathVariable Long projectId,
+            @Parameter(description = &quot;Filtre facultatif sur le statut&quot;, example = &quot;IN_PROGRESS&quot;)
+            @RequestParam(required = false) TaskStatus status) {
+<span class="fc" id="L154">        return taskService.list(projectId, userId, status);</span>
+    }
+
+    @PostMapping(&quot;/{projectId}/tasks&quot;)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = &quot;Créer une tâche&quot;,
+            description = &quot;Crée une tâche au statut TODO. Réservé aux administrateurs et aux membres. &quot;
+                    + &quot;Si assigneeId est renseigné, le membre assigné reçoit un e-mail.&quot;)
+    @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Tâche créée&quot;)
+    @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Données invalides ou assigné non membre du projet&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = &quot;403&quot;, description = &quot;Rôle insuffisant (observateur) ou non membre&quot;,
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public TaskResponse createTask(
+            @Parameter(description = USER_HEADER_DOC, example = &quot;1&quot;) @RequestHeader(USER_HEADER) Long userId,
+            @Parameter(description = &quot;Identifiant du projet&quot;, example = &quot;1&quot;) @PathVariable Long projectId,
+            @Valid @RequestBody TaskCreateRequest request) {
+<span class="fc" id="L171">        return taskService.create(projectId, userId, request);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

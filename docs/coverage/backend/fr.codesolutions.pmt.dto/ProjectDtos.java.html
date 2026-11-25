@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectDtos.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.dto</a> &gt; <span class="el_source">ProjectDtos.java</span></div><h1>ProjectDtos.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.dto;
+
+import fr.codesolutions.pmt.model.Project;
+import fr.codesolutions.pmt.model.ProjectMember;
+import fr.codesolutions.pmt.model.Role;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+
+/**
+ * Objets échangés pour les projets et leurs membres.
+ */
+public final class ProjectDtos {
+
+    private ProjectDtos() {
+    }
+
+    @Schema(description = &quot;Données de création d'un projet&quot;)
+<span class="fc" id="L23">    public record ProjectRequest(</span>
+            @Schema(example = &quot;Refonte du site vitrine&quot;)
+            @NotBlank(message = &quot;Le nom du projet est obligatoire&quot;)
+            @Size(max = 100, message = &quot;Le nom du projet ne doit pas dépasser 100 caractères&quot;)
+            String name,
+
+            @Schema(example = &quot;Nouvelle version du site institutionnel.&quot;)
+            @Size(max = 2000, message = &quot;La description ne doit pas dépasser 2000 caractères&quot;)
+            String description,
+
+            @Schema(example = &quot;2026-01-12&quot;)
+            @NotNull(message = &quot;La date de début est obligatoire&quot;)
+            LocalDate startDate) {
+    }
+
+    @Schema(description = &quot;Projet vu par l'utilisateur connecté&quot;)
+<span class="fc" id="L39">    public record ProjectResponse(</span>
+            @Schema(example = &quot;1&quot;) Long id,
+            @Schema(example = &quot;Refonte du site vitrine&quot;) String name,
+            @Schema(example = &quot;Nouvelle version du site institutionnel.&quot;) String description,
+            @Schema(example = &quot;2026-01-12&quot;) LocalDate startDate,
+            @Schema(description = &quot;Rôle de l'utilisateur connecté sur ce projet&quot;, example = &quot;ADMIN&quot;) Role role) {
+
+        public static ProjectResponse from(ProjectMember membership) {
+<span class="fc" id="L47">            Project project = membership.getProject();</span>
+<span class="fc" id="L48">            return new ProjectResponse(project.getId(), project.getName(), project.getDescription(),</span>
+<span class="fc" id="L49">                    project.getStartDate(), membership.getRole());</span>
+        }
+    }
+
+    @Schema(description = &quot;Invitation d'un utilisateur existant dans un projet&quot;)
+<span class="fc" id="L54">    public record MemberRequest(</span>
+            @Schema(description = &quot;Adresse e-mail du compte à inviter&quot;, example = &quot;diane@pmt.local&quot;)
+            @NotBlank(message = &quot;L'adresse e-mail est obligatoire&quot;)
+            @Email(message = &quot;L'adresse e-mail n'est pas valide&quot;)
+            String email,
+
+            @Schema(example = &quot;MEMBER&quot;)
+            @NotNull(message = &quot;Le rôle est obligatoire&quot;)
+            Role role) {
+    }
+
+    @Schema(description = &quot;Nouveau rôle d'un membre&quot;)
+<span class="fc" id="L66">    public record RoleRequest(</span>
+            @Schema(example = &quot;OBSERVER&quot;)
+            @NotNull(message = &quot;Le rôle est obligatoire&quot;)
+            Role role) {
+    }
+
+    @Schema(description = &quot;Membre d'un projet&quot;)
+<span class="fc" id="L73">    public record MemberResponse(</span>
+            @Schema(example = &quot;2&quot;) Long userId,
+            @Schema(example = &quot;bob&quot;) String username,
+            @Schema(example = &quot;bob@pmt.local&quot;) String email,
+            @Schema(example = &quot;MEMBER&quot;) Role role) {
+
+        public static MemberResponse from(ProjectMember membership) {
+<span class="fc" id="L80">            return new MemberResponse(membership.getUser().getId(), membership.getUser().getUsername(),</span>
+<span class="fc" id="L81">                    membership.getUser().getEmail(), membership.getRole());</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

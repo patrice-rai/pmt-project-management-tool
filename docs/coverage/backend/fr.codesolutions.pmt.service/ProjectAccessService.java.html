@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectAccessService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.service</a> &gt; <span class="el_source">ProjectAccessService.java</span></div><h1>ProjectAccessService.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.service;
+
+import fr.codesolutions.pmt.exception.ApiException;
+import fr.codesolutions.pmt.model.ProjectMember;
+import fr.codesolutions.pmt.model.Role;
+import fr.codesolutions.pmt.repository.ProjectMemberRepository;
+import fr.codesolutions.pmt.repository.ProjectRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Contrôle des droits par projet. C'est le seul endroit où le tableau des
+ * permissions de l'énoncé est appliqué :
+ * &lt;ul&gt;
+ *   &lt;li&gt;tout membre (administrateur, membre, observateur) peut consulter ;&lt;/li&gt;
+ *   &lt;li&gt;administrateur et membre peuvent créer, assigner et modifier les tâches ;&lt;/li&gt;
+ *   &lt;li&gt;seul l'administrateur gère les membres et les rôles.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Service
+@Transactional(readOnly = true)
+public class ProjectAccessService {
+
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository memberRepository;
+    private final AuthService authService;
+
+    public ProjectAccessService(ProjectRepository projectRepository, ProjectMemberRepository memberRepository,
+<span class="fc" id="L29">                                AuthService authService) {</span>
+<span class="fc" id="L30">        this.projectRepository = projectRepository;</span>
+<span class="fc" id="L31">        this.memberRepository = memberRepository;</span>
+<span class="fc" id="L32">        this.authService = authService;</span>
+<span class="fc" id="L33">    }</span>
+
+    /**
+     * Droit de consultation : l'appelant doit appartenir au projet, quel que soit son rôle.
+     *
+     * @return l'appartenance de l'appelant (projet, utilisateur et rôle)
+     * @throws ApiException 401 si l'utilisateur est inconnu, 404 si le projet n'existe pas,
+     *                      403 si l'utilisateur n'est pas membre du projet
+     */
+    public ProjectMember requireMember(Long projectId, Long userId) {
+<span class="fc" id="L43">        authService.requireUser(userId);</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (!projectRepository.existsById(projectId)) {</span>
+<span class="fc" id="L45">            throw ApiException.notFound(&quot;Projet introuvable&quot;);</span>
+        }
+<span class="fc" id="L47">        return memberRepository.findByProjectIdAndUserId(projectId, userId)</span>
+<span class="fc" id="L48">                .orElseThrow(() -&gt; ApiException.forbidden(&quot;Vous n'êtes pas membre de ce projet&quot;));</span>
+    }
+
+    /**
+     * Droit d'écriture sur les tâches : administrateur ou membre.
+     *
+     * @throws ApiException 403 pour un observateur
+     */
+    public ProjectMember requireTaskEditor(Long projectId, Long userId) {
+<span class="fc" id="L57">        ProjectMember membership = requireMember(projectId, userId);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (!membership.getRole().canEditTasks()) {</span>
+<span class="fc" id="L59">            throw ApiException.forbidden(&quot;Un observateur ne peut pas créer ni modifier de tâche&quot;);</span>
+        }
+<span class="fc" id="L61">        return membership;</span>
+    }
+
+    /**
+     * Droit de gestion des membres : administrateur uniquement.
+     *
+     * @throws ApiException 403 pour un membre ou un observateur
+     */
+    public ProjectMember requireAdmin(Long projectId, Long userId) {
+<span class="fc" id="L70">        ProjectMember membership = requireMember(projectId, userId);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (membership.getRole() != Role.ADMIN) {</span>
+<span class="fc" id="L72">            throw ApiException.forbidden(&quot;Seul un administrateur du projet peut gérer les membres&quot;);</span>
+        }
+<span class="fc" id="L74">        return membership;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

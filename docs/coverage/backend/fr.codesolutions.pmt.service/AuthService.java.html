@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.service;
+
+import fr.codesolutions.pmt.dto.AuthDtos.LoginRequest;
+import fr.codesolutions.pmt.dto.AuthDtos.RegisterRequest;
+import fr.codesolutions.pmt.dto.AuthDtos.UserResponse;
+import fr.codesolutions.pmt.exception.ApiException;
+import fr.codesolutions.pmt.model.User;
+import fr.codesolutions.pmt.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Inscription, connexion et identification de l'appelant.
+ */
+@Service
+@Transactional(readOnly = true)
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+<span class="fc" id="L23">    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {</span>
+<span class="fc" id="L24">        this.userRepository = userRepository;</span>
+<span class="fc" id="L25">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L26">    }</span>
+
+    /**
+     * Crée un compte. L'e-mail et le nom d'utilisateur doivent être libres.
+     *
+     * @throws ApiException 409 si l'e-mail ou le nom d'utilisateur est déjà pris
+     */
+    @Transactional
+    public UserResponse register(RegisterRequest request) {
+<span class="fc" id="L35">        String email = request.email().trim().toLowerCase();</span>
+<span class="fc" id="L36">        String username = request.username().trim();</span>
+<span class="fc bfc" id="L37" title="All 2 branches covered.">        if (userRepository.existsByEmailIgnoreCase(email)) {</span>
+<span class="fc" id="L38">            throw ApiException.conflict(&quot;Un compte existe déjà avec cette adresse e-mail&quot;);</span>
+        }
+<span class="fc bfc" id="L40" title="All 2 branches covered.">        if (userRepository.existsByUsernameIgnoreCase(username)) {</span>
+<span class="fc" id="L41">            throw ApiException.conflict(&quot;Ce nom d'utilisateur est déjà pris&quot;);</span>
+        }
+<span class="fc" id="L43">        User user = userRepository.save(new User(username, email, passwordEncoder.encode(request.password())));</span>
+<span class="fc" id="L44">        return UserResponse.from(user);</span>
+    }
+
+    /**
+     * Vérifie les identifiants. Le message d'erreur est volontairement le même
+     * que l'e-mail soit inconnu ou le mot de passe faux.
+     *
+     * @throws ApiException 401 si les identifiants sont incorrects
+     */
+    public UserResponse login(LoginRequest request) {
+<span class="fc" id="L54">        User user = userRepository.findByEmailIgnoreCase(request.email().trim())</span>
+<span class="fc" id="L55">                .filter(found -&gt; passwordEncoder.matches(request.password(), found.getPasswordHash()))</span>
+<span class="fc" id="L56">                .orElseThrow(() -&gt; ApiException.unauthorized(&quot;Adresse e-mail ou mot de passe incorrect&quot;));</span>
+<span class="fc" id="L57">        return UserResponse.from(user);</span>
+    }
+
+    /**
+     * Retrouve l'utilisateur désigné par l'en-tête X-User-Id.
+     *
+     * @throws ApiException 401 si aucun compte ne porte cet identifiant
+     */
+    public User requireUser(Long userId) {
+<span class="fc" id="L66">        return userRepository.findById(userId)</span>
+<span class="fc" id="L67">                .orElseThrow(() -&gt; ApiException.unauthorized(&quot;Utilisateur inconnu : reconnectez-vous&quot;));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

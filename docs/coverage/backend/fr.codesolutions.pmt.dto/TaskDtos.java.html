@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TaskDtos.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.dto</a> &gt; <span class="el_source">TaskDtos.java</span></div><h1>TaskDtos.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.dto;
+
+import fr.codesolutions.pmt.model.Priority;
+import fr.codesolutions.pmt.model.Task;
+import fr.codesolutions.pmt.model.TaskHistory;
+import fr.codesolutions.pmt.model.TaskStatus;
+import fr.codesolutions.pmt.model.User;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * Objets échangés pour les tâches et leur historique.
+ */
+public final class TaskDtos {
+
+    private TaskDtos() {
+    }
+
+    @Schema(description = &quot;Données de création d'une tâche&quot;)
+<span class="fc" id="L25">    public record TaskCreateRequest(</span>
+            @Schema(example = &quot;Maquetter la page d'accueil&quot;)
+            @NotBlank(message = &quot;Le nom de la tâche est obligatoire&quot;)
+            @Size(max = 150, message = &quot;Le nom de la tâche ne doit pas dépasser 150 caractères&quot;)
+            String name,
+
+            @Schema(example = &quot;Maquette haute fidélité, versions bureau et mobile.&quot;)
+            @Size(max = 2000, message = &quot;La description ne doit pas dépasser 2000 caractères&quot;)
+            String description,
+
+            @Schema(example = &quot;2026-02-05&quot;)
+            @NotNull(message = &quot;La date d'échéance est obligatoire&quot;)
+            LocalDate dueDate,
+
+            @Schema(example = &quot;MEDIUM&quot;)
+            @NotNull(message = &quot;La priorité est obligatoire&quot;)
+            Priority priority,
+
+            @Schema(description = &quot;Identifiant du membre assigné (facultatif)&quot;, example = &quot;2&quot;, nullable = true)
+            Long assigneeId) {
+    }
+
+    @Schema(description = &quot;Mise à jour complète d'une tâche&quot;)
+<span class="fc" id="L48">    public record TaskUpdateRequest(</span>
+            @Schema(example = &quot;Maquetter la page d'accueil&quot;)
+            @NotBlank(message = &quot;Le nom de la tâche est obligatoire&quot;)
+            @Size(max = 150, message = &quot;Le nom de la tâche ne doit pas dépasser 150 caractères&quot;)
+            String name,
+
+            @Schema(example = &quot;Maquette validée par le client.&quot;)
+            @Size(max = 2000, message = &quot;La description ne doit pas dépasser 2000 caractères&quot;)
+            String description,
+
+            @Schema(example = &quot;2026-02-05&quot;)
+            @NotNull(message = &quot;La date d'échéance est obligatoire&quot;)
+            LocalDate dueDate,
+
+            @Schema(description = &quot;Date de fin réelle (facultative)&quot;, example = &quot;2026-02-03&quot;, nullable = true)
+            LocalDate endDate,
+
+            @Schema(example = &quot;HIGH&quot;)
+            @NotNull(message = &quot;La priorité est obligatoire&quot;)
+            Priority priority,
+
+            @Schema(example = &quot;DONE&quot;)
+            @NotNull(message = &quot;Le statut est obligatoire&quot;)
+            TaskStatus status,
+
+            @Schema(description = &quot;Identifiant du membre assigné, null pour désassigner&quot;, example = &quot;2&quot;, nullable = true)
+            Long assigneeId) {
+    }
+
+    @Schema(description = &quot;Assignation d'une tâche&quot;)
+<span class="fc" id="L78">    public record AssignRequest(</span>
+            @Schema(description = &quot;Identifiant du membre assigné, null pour désassigner&quot;, example = &quot;2&quot;, nullable = true)
+            Long assigneeId) {
+    }
+
+    @Schema(description = &quot;Tâche avec toutes ses informations&quot;)
+<span class="fc" id="L84">    public record TaskResponse(</span>
+            @Schema(example = &quot;2&quot;) Long id,
+            @Schema(example = &quot;1&quot;) Long projectId,
+            @Schema(example = &quot;Maquetter la page d'accueil&quot;) String name,
+            @Schema(example = &quot;Maquette haute fidélité, versions bureau et mobile.&quot;) String description,
+            @Schema(example = &quot;2026-02-05&quot;) LocalDate dueDate,
+            @Schema(example = &quot;2026-02-03&quot;, nullable = true) LocalDate endDate,
+            @Schema(example = &quot;MEDIUM&quot;) Priority priority,
+            @Schema(example = &quot;IN_PROGRESS&quot;) TaskStatus status,
+            @Schema(example = &quot;2&quot;, nullable = true) Long assigneeId,
+            @Schema(example = &quot;bob&quot;, nullable = true) String assigneeName,
+            @Schema(example = &quot;1&quot;) Long createdById,
+            @Schema(example = &quot;alice&quot;) String createdByName,
+            @Schema(example = &quot;2026-01-07T09:00:00&quot;) LocalDateTime createdAt,
+            @Schema(example = &quot;2026-01-21T09:30:00&quot;) LocalDateTime updatedAt) {
+
+        public static TaskResponse from(Task task) {
+<span class="fc" id="L101">            User assignee = task.getAssignee();</span>
+<span class="fc" id="L102">            return new TaskResponse(task.getId(), task.getProject().getId(), task.getName(), task.getDescription(),</span>
+<span class="fc" id="L103">                    task.getDueDate(), task.getEndDate(), task.getPriority(), task.getStatus(),</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">                    assignee == null ? null : assignee.getId(),</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">                    assignee == null ? null : assignee.getUsername(),</span>
+<span class="fc" id="L106">                    task.getCreatedBy().getId(), task.getCreatedBy().getUsername(),</span>
+<span class="fc" id="L107">                    task.getCreatedAt(), task.getUpdatedAt());</span>
+        }
+    }
+
+    @Schema(description = &quot;Modification d'un champ d'une tâche&quot;)
+<span class="fc" id="L112">    public record HistoryResponse(</span>
+            @Schema(example = &quot;5&quot;) Long id,
+            @Schema(description = &quot;Champ modifié&quot;, example = &quot;status&quot;) String fieldName,
+            @Schema(example = &quot;TODO&quot;, nullable = true) String oldValue,
+            @Schema(example = &quot;IN_PROGRESS&quot;, nullable = true) String newValue,
+            @Schema(example = &quot;2&quot;) Long changedById,
+            @Schema(example = &quot;bob&quot;) String changedByName,
+            @Schema(example = &quot;2026-01-21T09:30:00&quot;) LocalDateTime changedAt) {
+
+        public static HistoryResponse from(TaskHistory entry) {
+<span class="fc" id="L122">            return new HistoryResponse(entry.getId(), entry.getFieldName(), entry.getOldValue(), entry.getNewValue(),</span>
+<span class="fc" id="L123">                    entry.getChangedBy().getId(), entry.getChangedBy().getUsername(), entry.getChangedAt());</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

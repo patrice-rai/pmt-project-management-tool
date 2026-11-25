@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pmt-backend</a> &gt; <a href="index.source.html" class="el_package">fr.codesolutions.pmt.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package fr.codesolutions.pmt.exception;
+
+import fr.codesolutions.pmt.dto.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/**
+ * Traduit les exceptions en réponses JSON homogènes ({@link ErrorResponse}).
+ */
+@RestControllerAdvice
+<span class="fc" id="L22">public class GlobalExceptionHandler {</span>
+
+<span class="fc" id="L24">    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);</span>
+
+    /** Erreurs métier levées par les services. */
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleApiException(ApiException ex) {
+<span class="fc" id="L29">        return build(ex.getStatus(), ex.getMessage(), Map.of());</span>
+    }
+
+    /** Corps de requête invalide : on renvoie le premier message de chaque champ en erreur. */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleValidation(MethodArgumentNotValidException ex) {
+<span class="fc" id="L35">        Map&lt;String, String&gt; details = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L36">        ex.getBindingResult().getFieldErrors()</span>
+<span class="fc" id="L37">                .forEach(error -&gt; details.putIfAbsent(error.getField(), error.getDefaultMessage()));</span>
+<span class="fc" id="L38">        return build(HttpStatus.BAD_REQUEST, &quot;Les données envoyées ne sont pas valides&quot;, details);</span>
+    }
+
+    /** JSON illisible ou valeur inconnue (rôle, priorité, statut, date mal formée). */
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity&lt;ErrorResponse&gt; handleUnreadable(Exception ex) {
+<span class="fc" id="L44">        return build(HttpStatus.BAD_REQUEST, &quot;La requête est mal formée&quot;, Map.of());</span>
+    }
+
+    /** L'en-tête X-User-Id est absent : l'appelant n'est pas identifié. */
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleMissingHeader(MissingRequestHeaderException ex) {
+<span class="fc" id="L50">        return build(HttpStatus.UNAUTHORIZED, &quot;Authentification requise : en-tête &quot; + ex.getHeaderName() + &quot; manquant&quot;,</span>
+<span class="fc" id="L51">                Map.of());</span>
+    }
+
+    /** Filet de sécurité : toute erreur non prévue est journalisée et masquée à l'appelant. */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleUnexpected(Exception ex) {
+<span class="fc" id="L57">        log.error(&quot;Erreur inattendue&quot;, ex);</span>
+<span class="fc" id="L58">        return build(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Une erreur interne est survenue&quot;, Map.of());</span>
+    }
+
+    private ResponseEntity&lt;ErrorResponse&gt; build(HttpStatus status, String message, Map&lt;String, String&gt; details) {
+<span class="fc" id="L62">        return ResponseEntity.status(status).body(ErrorResponse.of(status, message, details));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
