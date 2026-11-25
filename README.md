@@ -37,7 +37,7 @@ rôles, tâches, tableau de bord par statut, notifications par e-mail et histori
 | Dockerfile du front | [`frontend/Dockerfile`](frontend/Dockerfile) |
 | Configuration de la chaîne CI/CD | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | Procédure de déploiement | ce fichier, [partie 3](#3-procédure-de-déploiement) |
-| Images sur Docker Hub | `<compte-docker-hub>/pmt-backend` et `<compte-docker-hub>/pmt-frontend` |
+| Images sur Docker Hub | [`hybripat/pmt-backend`](https://hub.docker.com/r/hybripat/pmt-backend) et [`hybripat/pmt-frontend`](https://hub.docker.com/r/hybripat/pmt-frontend) |
 
 ## 2. Lancer l'application avec Docker
 
@@ -94,7 +94,7 @@ modification de la branche `main` : la machine cible n'a besoin ni de Java, ni d
 3. Copier `.env.example` en `.env` et renseigner :
 
    ```dotenv
-   DOCKERHUB_USERNAME=<compte-docker-hub>
+   DOCKERHUB_USERNAME=hybripat
    IMAGE_TAG=latest
    POSTGRES_PASSWORD=<un mot de passe choisi>
    ```
@@ -170,10 +170,10 @@ Dans GitHub, **Settings > Secrets and variables > Actions > New repository secre
 
 | Secret | Valeur |
 |---|---|
-| `DOCKERHUB_USERNAME` | nom du compte Docker Hub |
-| `DOCKERHUB_TOKEN` | jeton créé dans Docker Hub (**Account settings > Personal access tokens**, droits lecture et écriture) |
+| `DOCKER` | jeton créé dans Docker Hub (**Account settings > Personal access tokens**, droits lecture et écriture) |
 
-Les identifiants ne figurent jamais dans le dépôt.
+Le nom du compte Docker Hub (`hybripat`) n'est pas un secret : il est déclaré en tête du fichier de la
+chaîne (`env.DOCKERHUB_USERNAME`). Le jeton, lui, ne figure jamais dans le dépôt.
 
 ## 5. Tests et couverture
 
