@@ -1,0 +1,121 @@
+# ---------------------------------------------------------------------------
+# Chaîne d'intégration et de déploiement continus de PMT.
+#
+#   1. backend  : compile, exécute les tests unitaires et d'intégration,
+#                 mesure la couverture (JaCoCo) et échoue sous 60 %.
+#   2. frontend : installe, exécute les tests Jest avec couverture
+#                 (échec sous 60 %), puis construit l'application.
+#   3. docker   : si les deux précédents sont verts, sur la branche main,
+#                 construit les deux images et les pousse sur Docker Hub.
+#
+# Secrets à créer dans le dépôt (Settings > Secrets and variables > Actions) :
+#   DOCKERHUB_USERNAME  nom du compte Docker Hub
+#   DOCKERHUB_TOKEN     jeton d'accès Docker Hub (Account settings > Personal access tokens)
+# ---------------------------------------------------------------------------
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  backend:
+    name: Back - tests et couverture
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      # verify = compilation + tests + rapport JaCoCo + contrôle du seuil de couverture
+      - name: Construire, tester et contrôler la couverture
+        run: ./mvnw -B verify
+
+      - name: Publier le rapport de couverture du back
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: couverture-backend
+          path: backend/target/site/jacoco
+          if-no-files-found: ignore
+
+  frontend:
+    name: Front - tests, couverture et build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      # Le seuil de 60 % est déclaré dans jest.config.js : Jest échoue en dessous
+      - name: Tester et contrôler la couverture
+        run: npm run test:coverage
+
+      - name: Construire l'application
+        run: npm run build
+
+      - name: Publier le rapport de couverture du front
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: couverture-frontend
+          path: frontend/coverage
+          if-no-files-found: ignore
+
+  docker:
+    name: Déploiement - images sur Docker Hub
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    # On ne publie que ce qui est fusionné sur main, jamais une pull request
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Se connecter à Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Chaque image reçoit deux étiquettes : latest et l'empreinte du commit
+      - name: Construire et pousser l'image du back
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/pmt-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/pmt-backend:${{ github.sha }}
+
+      - name: Construire et pousser l'image du front
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/pmt-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/pmt-frontend:${{ github.sha }}
