@@ -58,3 +58,11 @@
   margin: 0 auto;
   padding: 1.5rem;
 }
+
+/* Pied de page : auteur du projet */
+.app-footer {
+  padding: 1.5rem 1rem 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #5f6278;
+}

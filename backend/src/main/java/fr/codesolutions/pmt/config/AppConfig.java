@@ -1,6 +1,7 @@
 package fr.codesolutions.pmt.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ public class AppConfig {
         return new OpenAPI().info(new Info()
                 .title("API PMT - Project Management Tool")
                 .version("1.0.0")
+                .contact(new Contact().name("Patrice RAÏ"))
                 .description("""
                         API REST de la plateforme de gestion de projet collaboratif PMT.
 

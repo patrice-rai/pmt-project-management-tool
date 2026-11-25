@@ -1,5 +1,9 @@
 # PMT - Project Management Tool
 
+> **Auteur : Patrice RAÏ** — étude de cas du bloc « Intégration, industrialisation et déploiement de
+> logiciel », titre Expert en Ingénierie du Logiciel (ISCOD).
+> Conception du modèle de données, API REST, interface Angular, tests, conteneurisation et chaîne CI/CD.
+
 Plateforme de gestion de projet collaboratif pour les équipes de développement : projets, membres et
 rôles, tâches, tableau de bord par statut, notifications par e-mail et historique des modifications.
 
