@@ -26,10 +26,12 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pmt -d pmt"]
+      # Test en TCP (-h 127.0.0.1) : pendant qu'il joue init.sql, PostgreSQL n'écoute que sur
+      # son socket local puis redémarre. Sans -h, la base serait déclarée prête trop tôt.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pmt -d pmt"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
 
   # Faux serveur SMTP : les e-mails d'assignation se lisent sur http://localhost:8025
   mailpit:
@@ -41,12 +43,16 @@ services:
   backend:
     image: ${DOCKERHUB_USERNAME:-local}/pmt-backend:${IMAGE_TAG:-latest}
     build: ./backend
+    # Si la base ou le réseau flanche au démarrage, le back est relancé
+    restart: on-failure
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/pmt
       SPRING_DATASOURCE_USERNAME: pmt
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pmt}
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
+      # Les dates de création et de modification sont enregistrées à l'heure de Paris
+      TZ: Europe/Paris
     depends_on:
       # Le back vérifie le schéma au démarrage : la base doit être prête
       db:
