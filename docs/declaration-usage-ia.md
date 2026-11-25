@@ -23,5 +23,9 @@ construction des images et lancement de l'ensemble avec Docker Compose.
 
 ## Ma part
 
-<!-- À compléter par moi avant le rendu : ce que j'ai décidé, relu, corrigé ou réécrit, et comment
-     j'ai vérifié que l'application répond à l'énoncé. -->
+- J'ai fourni l'énoncé, la feuille de travail et le plan de route, et piloté le travail de l'assistant.
+- J'ai choisi GitHub et GitHub Actions pour le dépôt et la chaîne, et Docker Hub (compte `hybripat`)
+  pour les images.
+- J'ai créé le jeton d'accès Docker Hub et configuré le secret du dépôt moi-même : l'assistant n'a
+  jamais eu accès à ce jeton.
+- J'ai décidé de la publication du dépôt et de la formulation de cette déclaration.
