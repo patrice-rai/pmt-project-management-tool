@@ -52,7 +52,7 @@ export class TaskDetail implements OnInit {
   readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
     description: [''],
-    dueDate: [''],
+    dueDate: ['', Validators.required],
     endDate: [''],
     priority: ['MEDIUM' as Priority, Validators.required],
     status: ['TODO' as TaskStatus, Validators.required],
@@ -106,7 +106,7 @@ export class TaskDetail implements OnInit {
       .update(this.taskId, {
         name,
         description: description.trim() || null,
-        dueDate: dueDate || null,
+        dueDate,
         endDate: endDate || null,
         priority,
         status,

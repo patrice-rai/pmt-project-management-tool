@@ -105,6 +105,9 @@
               <div class="field">
                 <label for="edit-due">Date d'échéance</label>
                 <input id="edit-due" type="date" formControlName="dueDate" />
+                @if (form.controls.dueDate.touched && form.controls.dueDate.invalid) {
+                  <span class="field-error">La date d'échéance est obligatoire.</span>
+                }
               </div>
               <div class="field">
                 <label for="edit-end">Date de fin</label>

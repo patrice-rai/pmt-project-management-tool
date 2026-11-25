@@ -154,16 +154,26 @@ describe('TaskDetail', () => {
     expect(el().querySelectorAll('.history-entry').length).toBe(3);
   });
 
-  it('envoie des dates absentes quand elles sont vidées', async () => {
+  it('envoie une date de fin absente quand elle est vidée', async () => {
     await setup('ADMIN');
-    component.form.patchValue({ dueDate: '', endDate: '' });
+    component.form.patchValue({ endDate: '' });
     component.save();
 
     const req = http.expectOne('/api/tasks/10');
-    expect(req.request.body.dueDate).toBeNull();
+    expect(req.request.body.dueDate).toBe('2026-02-01');
     expect(req.request.body.endDate).toBeNull();
-    req.flush(task({ dueDate: null }));
+    req.flush(task());
     http.expectOne('/api/tasks/10/history').flush(HISTORY);
+  });
+
+  it("n'envoie pas une mise à jour sans date d'échéance", async () => {
+    await setup('ADMIN');
+    component.form.patchValue({ dueDate: '' });
+    el().querySelector('form')!.dispatchEvent(new Event('submit'));
+    harness.detectChanges();
+
+    http.expectNone((req) => req.method === 'PUT');
+    expect(el().textContent).toContain("La date d'échéance est obligatoire");
   });
 
   it("n'envoie pas une mise à jour sans nom", async () => {

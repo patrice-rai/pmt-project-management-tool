@@ -254,6 +254,16 @@ describe('ProjectDashboard', () => {
       expect(el().textContent).toContain('Le nom est obligatoire');
     });
 
+    it("refuse une tâche sans date d'échéance", async () => {
+      await setup('MEMBER');
+      component.taskForm.patchValue({ name: 'Tâche sans date' });
+      submit(taskForm());
+      harness.detectChanges();
+
+      http.expectNone((req) => req.method === 'POST');
+      expect(el().textContent).toContain("La date d'échéance est obligatoire");
+    });
+
     it('crée une tâche assignée et l’ajoute au tableau', async () => {
       await setup('MEMBER');
       component.taskForm.setValue({
@@ -283,14 +293,14 @@ describe('ProjectDashboard', () => {
 
     it('envoie les champs facultatifs vides comme absents', async () => {
       await setup('ADMIN');
-      component.taskForm.patchValue({ name: 'Tâche minimale' });
+      component.taskForm.patchValue({ name: 'Tâche minimale', dueDate: '2026-04-01' });
       submit(taskForm());
 
       const req = http.expectOne((r) => r.method === 'POST');
       expect(req.request.body).toEqual({
         name: 'Tâche minimale',
         description: null,
-        dueDate: null,
+        dueDate: '2026-04-01',
         priority: 'MEDIUM',
         assigneeId: null,
       });
@@ -302,7 +312,7 @@ describe('ProjectDashboard', () => {
       component.filterByStatus('DONE');
       http.expectOne('/api/projects/1/tasks?status=DONE').flush([TASKS[2]]);
 
-      component.taskForm.patchValue({ name: 'Nouvelle tâche' });
+      component.taskForm.patchValue({ name: 'Nouvelle tâche', dueDate: '2026-04-01' });
       component.createTask();
       http.expectOne((r) => r.method === 'POST').flush(task({ id: 15, status: 'TODO' }));
 
@@ -311,7 +321,7 @@ describe('ProjectDashboard', () => {
 
     it('affiche le refus du back', async () => {
       await setup('MEMBER');
-      component.taskForm.patchValue({ name: 'Tâche refusée' });
+      component.taskForm.patchValue({ name: 'Tâche refusée', dueDate: '2026-04-01' });
       submit(taskForm());
 
       http

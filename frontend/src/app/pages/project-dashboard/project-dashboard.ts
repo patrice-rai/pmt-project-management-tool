@@ -51,7 +51,7 @@ export class ProjectDashboard implements OnInit {
   readonly taskForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
     description: [''],
-    dueDate: [''],
+    dueDate: ['', Validators.required],
     priority: ['MEDIUM' as Priority, Validators.required],
     assigneeId: [''],
   });
@@ -161,7 +161,7 @@ export class ProjectDashboard implements OnInit {
       .create(this.projectId, {
         name,
         description: description.trim() || null,
-        dueDate: dueDate || null,
+        dueDate,
         priority,
         assigneeId: assigneeId ? Number(assigneeId) : null,
       })

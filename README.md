@@ -176,7 +176,7 @@ Les identifiants ne figurent jamais dans le dépôt.
 | | Back | Front |
 |---|---|---|
 | Commande | `cd backend && ./mvnw verify` | `cd frontend && npm ci && npm run test:coverage` |
-| Tests | 80 | 84 |
+| Tests | 80 | 86 |
 | Instructions | 98,8 % | 100 % |
 | Branches | 98,1 % | 100 % |
 | Rapport généré dans | `backend/target/site/jacoco/index.html` | `frontend/coverage/index.html` |

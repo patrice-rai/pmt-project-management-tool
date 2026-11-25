@@ -98,6 +98,9 @@
               <div class="field">
                 <label for="task-due">Date d'échéance</label>
                 <input id="task-due" type="date" formControlName="dueDate" />
+                @if (taskForm.controls.dueDate.touched && taskForm.controls.dueDate.invalid) {
+                  <span class="field-error">La date d'échéance est obligatoire.</span>
+                }
               </div>
               <div class="field">
                 <label for="task-priority">Priorité</label>
