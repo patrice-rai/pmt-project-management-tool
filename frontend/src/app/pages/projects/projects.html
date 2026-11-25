@@ -1,0 +1,66 @@
+<div class="page-head">
+  <h1>Mes projets</h1>
+</div>
+
+<div class="two-cols">
+  <section aria-label="Liste de mes projets">
+    @if (loading) {
+      <p class="muted">Chargement…</p>
+    } @else if (loadError) {
+      <p class="alert alert-error" role="alert">{{ loadError }}</p>
+    } @else if (projects.length === 0) {
+      <p class="card muted" data-testid="empty">
+        Vous n'avez encore aucun projet. Créez le premier avec le formulaire.
+      </p>
+    } @else {
+      <ul class="plain-list">
+        @for (project of projects; track project.id) {
+          <li>
+            <a class="project-link" [routerLink]="['/projects', project.id]">
+              <span class="project-link-head">
+                <span>{{ project.name }}</span>
+                <span class="badge badge-{{ project.role }}">{{ roleLabels[project.role] }}</span>
+              </span>
+              @if (project.description) {
+                <span class="muted">{{ project.description }}</span>
+              }
+              <span class="muted"> Début le {{ project.startDate | date: 'dd/MM/yyyy' }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="card">
+    <h2>Nouveau projet</h2>
+    <form class="form" [formGroup]="form" (ngSubmit)="create()" novalidate>
+      <div class="field">
+        <label for="project-name">Nom</label>
+        <input id="project-name" type="text" formControlName="name" />
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <span class="field-error">Le nom est obligatoire (100 caractères au plus).</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="project-description">Description</label>
+        <textarea id="project-description" formControlName="description"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="project-start">Date de début</label>
+        <input id="project-start" type="date" formControlName="startDate" />
+        @if (form.controls.startDate.touched && form.controls.startDate.invalid) {
+          <span class="field-error">La date de début est obligatoire.</span>
+        }
+      </div>
+
+      @if (createError) {
+        <p class="alert alert-error" role="alert">{{ createError }}</p>
+      }
+
+      <button type="submit" class="btn" [disabled]="submitting">Créer le projet</button>
+    </form>
+  </section>
+</div>

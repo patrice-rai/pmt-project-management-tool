@@ -1,0 +1,184 @@
+@if (loading) {
+  <p class="muted">Chargement…</p>
+} @else if (loadError) {
+  <p class="alert alert-error" role="alert">{{ loadError }}</p>
+  <p><a routerLink="/projects">Retour à mes projets</a></p>
+} @else if (project) {
+  <div class="page-head">
+    <div>
+      <h1>{{ project.name }}</h1>
+      @if (project.description) {
+        <p class="muted">{{ project.description }}</p>
+      }
+      <p class="muted">
+        Début le {{ project.startDate | date: 'dd/MM/yyyy' }} · Mon rôle :
+        <span class="badge badge-{{ project.role }}" data-testid="my-role">{{
+          roleLabels[project.role]
+        }}</span>
+      </p>
+    </div>
+    <a routerLink="/projects">Retour à mes projets</a>
+  </div>
+
+  <div class="two-cols">
+    <div class="stack">
+      <section aria-labelledby="board-title">
+        <div class="page-head">
+          <h2 id="board-title">Tableau de bord</h2>
+          <div class="field">
+            <label for="status-filter">Filtrer par statut</label>
+            <select
+              id="status-filter"
+              #statusSelect
+              [value]="statusFilter"
+              (change)="filterByStatus(statusSelect.value)"
+            >
+              <option value="">Tous les statuts</option>
+              @for (status of statuses; track status) {
+                <option [value]="status">{{ statusLabels[status] }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        @if (taskError) {
+          <p class="alert alert-error" role="alert" data-testid="task-error">{{ taskError }}</p>
+        }
+
+        <div class="board">
+          @for (status of visibleStatuses; track status) {
+            <div class="board-column" [attr.data-status]="status">
+              <h3>
+                <span>{{ statusLabels[status] }}</span>
+                <span class="badge">{{ tasksByStatus(status).length }}</span>
+              </h3>
+              <ul class="plain-list">
+                @for (task of tasksByStatus(status); track task.id) {
+                  <li>
+                    <a class="task-card" [routerLink]="['/projects', projectId, 'tasks', task.id]">
+                      <span class="task-card-name">{{ task.name }}</span>
+                      <span class="task-card-meta">
+                        <span class="badge badge-{{ task.priority }}">{{
+                          priorityLabels[task.priority]
+                        }}</span>
+                        @if (task.dueDate) {
+                          <span>Échéance : {{ task.dueDate | date: 'dd/MM/yyyy' }}</span>
+                        }
+                        <span>{{ task.assigneeName || 'Non assignée' }}</span>
+                      </span>
+                    </a>
+                  </li>
+                } @empty {
+                  <li class="muted">Aucune tâche.</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (canEdit) {
+        <section class="card" aria-labelledby="new-task-title">
+          <h2 id="new-task-title">Nouvelle tâche</h2>
+          <form class="form" [formGroup]="taskForm" (ngSubmit)="createTask()" novalidate>
+            <div class="field">
+              <label for="task-name">Nom</label>
+              <input id="task-name" type="text" formControlName="name" />
+              @if (taskForm.controls.name.touched && taskForm.controls.name.invalid) {
+                <span class="field-error">Le nom est obligatoire (150 caractères au plus).</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="task-description">Description</label>
+              <textarea id="task-description" formControlName="description"></textarea>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="task-due">Date d'échéance</label>
+                <input id="task-due" type="date" formControlName="dueDate" />
+              </div>
+              <div class="field">
+                <label for="task-priority">Priorité</label>
+                <select id="task-priority" formControlName="priority">
+                  @for (priority of priorities; track priority) {
+                    <option [value]="priority">{{ priorityLabels[priority] }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label for="task-assignee">Assignée à</label>
+                <select id="task-assignee" formControlName="assigneeId">
+                  <option value="">Personne</option>
+                  @for (member of members; track member.userId) {
+                    <option [value]="member.userId">{{ member.username }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn">Créer la tâche</button>
+          </form>
+        </section>
+      }
+    </div>
+
+    <aside class="card stack" aria-labelledby="members-title">
+      <h2 id="members-title">Membres</h2>
+
+      @if (memberError) {
+        <p class="alert alert-error" role="alert" data-testid="member-error">{{ memberError }}</p>
+      }
+
+      <ul class="plain-list">
+        @for (member of members; track member.userId) {
+          <li class="member-row">
+            <div>
+              <div>{{ member.username }}</div>
+              <div class="member-email">{{ member.email }}</div>
+            </div>
+            @if (isAdmin) {
+              <select
+                #roleSelect
+                [attr.aria-label]="'Rôle de ' + member.username"
+                [value]="member.role"
+                (change)="changeRole(member, roleSelect.value)"
+              >
+                @for (role of roles; track role) {
+                  <option [value]="role" [selected]="role === member.role">
+                    {{ roleLabels[role] }}
+                  </option>
+                }
+              </select>
+            } @else {
+              <span class="badge badge-{{ member.role }}">{{ roleLabels[member.role] }}</span>
+            }
+          </li>
+        }
+      </ul>
+
+      @if (isAdmin) {
+        <form class="form" [formGroup]="inviteForm" (ngSubmit)="invite()" novalidate>
+          <h3>Inviter un membre</h3>
+          <div class="field">
+            <label for="invite-email">Adresse e-mail</label>
+            <input id="invite-email" type="email" formControlName="email" />
+            @if (inviteForm.controls.email.touched && inviteForm.controls.email.invalid) {
+              <span class="field-error">Saisissez une adresse e-mail valide.</span>
+            }
+          </div>
+          <div class="field">
+            <label for="invite-role">Rôle</label>
+            <select id="invite-role" formControlName="role">
+              @for (role of roles; track role) {
+                <option [value]="role">{{ roleLabels[role] }}</option>
+              }
+            </select>
+          </div>
+          <button type="submit" class="btn">Inviter</button>
+        </form>
+      }
+    </aside>
+  </div>
+}

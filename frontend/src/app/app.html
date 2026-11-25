@@ -1,0 +1,21 @@
+<header class="topbar">
+  <a class="brand" routerLink="/projects">
+    <span class="brand-mark" aria-hidden="true">P</span>
+    <span>Project Management Tool</span>
+  </a>
+
+  <nav class="topbar-nav" aria-label="Navigation principale">
+    @if (user(); as current) {
+      <a routerLink="/projects">Mes projets</a>
+      <span class="topbar-user" data-testid="current-user">{{ current.username }}</span>
+      <button type="button" class="btn btn-ghost" (click)="logout()">Se déconnecter</button>
+    } @else {
+      <a routerLink="/login">Connexion</a>
+      <a routerLink="/register">Inscription</a>
+    }
+  </nav>
+</header>
+
+<main class="page">
+  <router-outlet />
+</main>

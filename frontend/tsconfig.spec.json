@@ -1,0 +1,12 @@
+/* Configuration TypeScript des tests (Jest). */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/spec",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "types": ["jest"]
+  },
+  "include": ["setup-jest.ts", "src/**/*.d.ts", "src/**/*.spec.ts"]
+}

@@ -1,0 +1,56 @@
+<section class="card narrow">
+  <h1>Inscription</h1>
+
+  <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="field">
+      <label for="register-username">Nom d'utilisateur</label>
+      <input
+        id="register-username"
+        type="text"
+        formControlName="username"
+        autocomplete="username"
+      />
+      @if (form.controls.username.touched && form.controls.username.invalid) {
+        <span class="field-error">Entre 3 et 50 caractères.</span>
+      }
+      @if (fieldErrors['username']) {
+        <span class="field-error">{{ fieldErrors['username'] }}</span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="register-email">Adresse e-mail</label>
+      <input id="register-email" type="email" formControlName="email" autocomplete="email" />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="field-error">Saisissez une adresse e-mail valide.</span>
+      }
+      @if (fieldErrors['email']) {
+        <span class="field-error">{{ fieldErrors['email'] }}</span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="register-password">Mot de passe</label>
+      <input
+        id="register-password"
+        type="password"
+        formControlName="password"
+        autocomplete="new-password"
+      />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <span class="field-error">Au moins 8 caractères.</span>
+      }
+      @if (fieldErrors['password']) {
+        <span class="field-error">{{ fieldErrors['password'] }}</span>
+      }
+    </div>
+
+    @if (error) {
+      <p class="alert alert-error" role="alert">{{ error }}</p>
+    }
+
+    <button type="submit" class="btn" [disabled]="submitting">Créer mon compte</button>
+  </form>
+
+  <p class="muted">Déjà inscrit ? <a routerLink="/login">Connectez-vous</a></p>
+</section>

@@ -1,0 +1,143 @@
+@if (loading) {
+  <p class="muted">Chargement…</p>
+} @else if (loadError) {
+  <p class="alert alert-error" role="alert">{{ loadError }}</p>
+  <p><a [routerLink]="['/projects', projectId]">Retour au tableau de bord</a></p>
+} @else if (task && project) {
+  <div class="page-head">
+    <div>
+      <h1>{{ task.name }}</h1>
+      <p class="muted">Projet : {{ project.name }}</p>
+    </div>
+    <a [routerLink]="['/projects', projectId]">Retour au tableau de bord</a>
+  </div>
+
+  @if (error) {
+    <p class="alert alert-error" role="alert">{{ error }}</p>
+  }
+  @if (success) {
+    <p class="alert alert-success" role="status">{{ success }}</p>
+  }
+
+  <div class="two-cols">
+    <div class="stack">
+      <section class="card" aria-labelledby="details-title">
+        <h2 id="details-title">Informations</h2>
+        <dl class="details">
+          <dt>Statut</dt>
+          <dd>
+            <span class="badge badge-{{ task.status }}">{{ statusLabels[task.status] }}</span>
+          </dd>
+          <dt>Priorité</dt>
+          <dd>
+            <span class="badge badge-{{ task.priority }}">{{
+              priorityLabels[task.priority]
+            }}</span>
+          </dd>
+          <dt>Description</dt>
+          <dd>{{ task.description || '—' }}</dd>
+          <dt>Date d'échéance</dt>
+          <dd>{{ task.dueDate ? (task.dueDate | date: 'dd/MM/yyyy') : '—' }}</dd>
+          <dt>Date de fin</dt>
+          <dd>{{ task.endDate ? (task.endDate | date: 'dd/MM/yyyy') : '—' }}</dd>
+          <dt>Assignée à</dt>
+          <dd data-testid="assignee">{{ task.assigneeName || 'Personne' }}</dd>
+          <dt>Créée par</dt>
+          <dd>{{ task.createdByName }}, le {{ task.createdAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+          <dt>Dernière modification</dt>
+          <dd>{{ task.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </dl>
+      </section>
+
+      @if (canEdit) {
+        <section class="card" aria-labelledby="assign-title">
+          <h2 id="assign-title">Assignation</h2>
+          <div class="field">
+            <label for="assignee">Assigner la tâche à</label>
+            <select id="assignee" #assigneeSelect (change)="assign(assigneeSelect.value)">
+              <option value="" [selected]="task.assigneeId === null">Personne</option>
+              @for (member of members; track member.userId) {
+                <option [value]="member.userId" [selected]="member.userId === task.assigneeId">
+                  {{ member.username }}
+                </option>
+              }
+            </select>
+            <span class="muted">La personne assignée est prévenue par e-mail.</span>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="edit-title">
+          <h2 id="edit-title">Mettre à jour</h2>
+          <form class="form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+            <div class="field">
+              <label for="edit-name">Nom</label>
+              <input id="edit-name" type="text" formControlName="name" />
+              @if (form.controls.name.touched && form.controls.name.invalid) {
+                <span class="field-error">Le nom est obligatoire (150 caractères au plus).</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="edit-description">Description</label>
+              <textarea id="edit-description" formControlName="description"></textarea>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="edit-status">Statut</label>
+                <select id="edit-status" formControlName="status">
+                  @for (status of statuses; track status) {
+                    <option [value]="status">{{ statusLabels[status] }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label for="edit-priority">Priorité</label>
+                <select id="edit-priority" formControlName="priority">
+                  @for (priority of priorities; track priority) {
+                    <option [value]="priority">{{ priorityLabels[priority] }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label for="edit-due">Date d'échéance</label>
+                <input id="edit-due" type="date" formControlName="dueDate" />
+              </div>
+              <div class="field">
+                <label for="edit-end">Date de fin</label>
+                <input id="edit-end" type="date" formControlName="endDate" />
+              </div>
+            </div>
+
+            <button type="submit" class="btn">Enregistrer</button>
+          </form>
+        </section>
+      } @else {
+        <p class="muted" data-testid="read-only">
+          Vous êtes observateur sur ce projet : la tâche est en lecture seule.
+        </p>
+      }
+    </div>
+
+    <aside class="card" aria-labelledby="history-title">
+      <h2 id="history-title">Historique des modifications</h2>
+      <ul class="plain-list">
+        @for (entry of history; track entry.id) {
+          <li class="history-entry">
+            <strong>{{ fieldLabel(entry.fieldName) }}</strong> :
+            {{ historyValue(entry.fieldName, entry.oldValue) }} →
+            {{ historyValue(entry.fieldName, entry.newValue) }}
+            <time [attr.datetime]="entry.changedAt">
+              {{ entry.changedByName }}, le {{ entry.changedAt | date: 'dd/MM/yyyy HH:mm' }}
+            </time>
+          </li>
+        } @empty {
+          <li class="muted">Aucune modification pour l'instant.</li>
+        }
+      </ul>
+    </aside>
+  </div>
+}
