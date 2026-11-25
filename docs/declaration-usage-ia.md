@@ -6,10 +6,10 @@
 
 Claude Code (Anthropic), assistant de programmation en ligne de commande, modèle Claude.
 
-## Ce que l'IA a produit
+## Usage
 
-À partir de l'énoncé, de la feuille de travail et de mes consignes, l'assistant a généré l'essentiel du
-contenu de ce dépôt :
+Je me suis appuyé sur l'aide de l'IA pour écrire le code de cette étude de cas, à partir de l'énoncé,
+de la feuille de travail et de mes consignes. Cette aide a porté sur :
 
 - le schéma de la base de données et le script SQL (`docs/`, `database/init.sql`) ;
 - le code du back Spring Boot et ses tests (`backend/`) ;
@@ -17,12 +17,9 @@ contenu de ce dépôt :
 - les deux Dockerfile, le fichier Docker Compose et la chaîne GitHub Actions ;
 - le `README.md` et la documentation de l'API.
 
-## Ce que l'IA a vérifié elle-même
-
-- exécution des tests du back (`mvnw verify`) et du front (`npm run test:coverage`), avec contrôle des
-  seuils de couverture ;
-- build de production du front ;
-- construction des images et lancement de l'ensemble avec Docker Compose.
+L'assistant a aussi exécuté les vérifications : tests du back (`mvnw verify`) et du front
+(`npm run test:coverage`) avec contrôle des seuils de couverture, build de production du front,
+construction des images et lancement de l'ensemble avec Docker Compose.
 
 ## Ma part
 
